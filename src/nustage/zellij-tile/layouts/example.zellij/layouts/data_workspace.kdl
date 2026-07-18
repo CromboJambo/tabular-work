@@ -1,0 +1,55 @@
+// Nustage Data Workspace Layout
+// This layout demonstrates how to set up Zellij with the Nustage tile
+
+layouts {
+    data-workspace {
+        // Split vertically into three panes
+        split {
+            direction: "Vertical"
+
+            // Left pane: Nustage tile
+            pane {
+                command: "nustage-zellij-tile"
+                focus: true
+            }
+
+            // Middle pane: Code editor
+            pane {
+                command: "nvim"
+            }
+
+            // Right pane: Terminal
+            pane {
+                command: "zsh"
+            }
+        }
+    }
+
+    // Alternative: Horizontal split layout
+    data-workspace-horizontal {
+        split {
+            direction: "Horizontal"
+
+            // Top pane: Nustage tile
+            pane {
+                command: "nustage-zellij-tile"
+                focus: true
+            }
+
+            // Bottom pane: Terminal
+            pane {
+                command: "zsh"
+            }
+        }
+    }
+
+    // Minimal layout with just Nustage tile
+    nustage-only {
+        pane {
+            command: "nustage-zellij-tile"
+        }
+    }
+}
+
+// Default layout to use
+default_layout "data-workspace"
