@@ -77,6 +77,20 @@ git-sheets diff snap1.toml snap2.toml  # See what changed
 - Timestamp as canonical reference (no human "final-final-final")
 - Diff computation via git-sheets CLI shows actual changes
 
+### **Tabular vs Columnar Data Distinction** (July 2026)
+
+Where to specify in architecture:
+
+| Concern | Owner | Notes |
+|---------|-------|-------|
+| Logical model | **RSF** (tabular data format) | Rows + columns structure — what the data is |
+| Storage representation | **Implementation** (multiple backends) | Row-oriented for Git history; columnar for analytics |
+| Serialization | **Format choice** | CSV = row-oriented text; Arrow/Parquet = columnar in-memory |
+| Interface | **Tabular** | Users interact with "a table" — logical model preserved |
+| Engine | **Columnar** | Storage engine optimizes however it wants |
+
+**Design principle:** preserving the shape of the data. The storage engine can optimize, but shouldn't change meaning or shape of the table. That's a solid design principle to build around.
+
 ## Testing Independence
 
 ### Per-Repo Unit Tests
