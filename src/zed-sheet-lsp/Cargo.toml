@@ -1,0 +1,8 @@
+[package]
+name = "zed-sheet-lsp"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+nustage = { path = "../nustage" }
+serde = "1.0"
