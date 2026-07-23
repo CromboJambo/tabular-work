@@ -1,5 +1,11 @@
 [workspace]
-members = ["src/nustage", "src/zed-sheet-lsp", "src/git-sheets", "src/rsf-cli"]
+members = [
+    "rsf-core",
+    "rsf-cli",
+    "nustage",
+    "zed-sheet-lsp",
+    "git-sheets",
+]
 resolver = "2"
 
 [workspace.package]
@@ -7,14 +13,15 @@ version = "0.1.0"
 edition = "2024"
 
 # Core Stack:
-# - nustage (pipeline engine, no dependencies)
-# - zed-sheet-lsp (Zed LSP integration, depends on nustage library)
-# - git-sheets (history/snapshots/diff, optional in workflow)
-# - rsf-cli (representation/analysis, companion to stack)
+# - rsf-core (semantic model for tabular data, no deps)
+# - nustage (pipeline engine, depends on rsf-core optionally)
+# - zed-sheet-lsp (Zed LSP integration, depends on nustage + rsf-core)
+# - git-sheets (version control for spreadsheets, depends on rsf-core)
+# - rsf-cli (representation/analysis CLI, depends on rsf-core)
 
 [workspace.dependencies]
-serde = "1.0"
-clap = "4.5"
+serde = { version = "1.0", features = ["derive"] }
+clap = { version = "4.5", features = ["derive"] }
 toml = "0.8"
 sha256 = "0.1"
 chardet = "0.3"
