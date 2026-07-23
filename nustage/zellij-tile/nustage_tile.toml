@@ -1,0 +1,84 @@
+# Nustage Zellij Tile Configuration
+# This file defines the keybindings, colors, and settings for the Nustage tile
+
+[keybindings]
+# File operations
+file_load = "l"
+file_save = "s"
+file_export = "e"
+
+# Transformation operations
+add_column = "c"
+filter_rows = "f"
+group_by = "g"
+rename_column = "r"
+select_columns = "a"
+drop_columns = "d"
+sort_by = "t"
+remove_duplicates = "u"
+
+# Navigation
+up = "up"
+down = "down"
+left = "left"
+right = "right"
+page_up = "page_up"
+page_down = "page_down"
+home = "home"
+end = "end"
+
+# View switching
+view_steps = "s"
+view_data = "d"
+view_schema = "z"
+view_sql = "x"
+view_help = "h"
+
+# Tile operations
+quit = "q"
+new_pipeline = "n"
+execute_pipeline = "enter"
+remove_step = "delete"
+
+[colors]
+primary = "cyan"
+secondary = "green"
+error = "red"
+warning = "yellow"
+info = "blue"
+dim = "gray"
+bold = "white"
+
+[status_bar]
+enabled = true
+position = "bottom"
+left = "file_info"
+center = "pipeline_status"
+right = "view_mode"
+spacing = 2
+
+[file_info]
+enabled = true
+format = "File: {file_name} | Rows: {row_count} | Columns: {column_count}"
+
+[pipeline_status]
+enabled = true
+format = "Steps: {step_count} | Status: {status}"
+
+[view_mode]
+enabled = true
+format = "View: {mode}"
+
+[window]
+scrollback_lines = 1000
+scroll_on_output = true
+scroll_on_append = true
+copy_on_select = true
+mouse_mode = "cell"
+
+[terminal]
+font_family = "JetBrains Mono"
+font_size = 12
+cell_padding = 1
+cursor_blink = true
+cursor_style = "block"
