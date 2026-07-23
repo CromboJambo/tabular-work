@@ -140,6 +140,17 @@ When adding a new feature, ask:
 | Dependency Config | Cargo workspace strategy | `src/git-sheets/docs/dependency-config.md` |
 | Example Workflows | Practical scripts | `src/git-sheets/docs/examples/full_stack_daily_development.sh` |
 
+### Priority 4: Xan-Inspired TUI & Expression Layer
+
+Research target: [xan](https://github.com/medialab/xan) (MIT/Unlicense, ~60 CSV subcommands, Moonblade DSL, ratatui rendering). Decision: **rewrite patterns, don't depend** — xan is binary-first monolith with no library API and 149 deps for social-science features we don't need.
+
+| Crate | Initiative | Scope | Status |
+|-------|-----------|-------|--------|
+| `rsf-core` | Minimal expression layer | Column references (`col("name")`), arithmetic (+, -, *, / with operator precedence), string ops (upper/lower/len via Expr::Function). Pest DSL deferred until concrete use case. | `[x]` |
+| `rsf-cli` | Ratatui stdout rendering utility + interactive TUI | Copied xan's 95-line `ratatui.rs` pattern into `render.rs`. Added `rsf view <file>` subcommand with full spreadsheet-like grid: column headers, row numbers, cell highlighting, arrow navigation, Enter-to-edit status bar. Sheet-tui consolidated here (polars removed). | `[x]` |
+
+**Not doing:** Moonblade clone (50+ social-science functions), pipeline engine rewrite (nustage already handles this), full expression language from scratch (start with closures, add Pest only when needed).
+
 ## Questions This Architecture Answers
 
 **Q: Can I use just git-sheets for Excel version control?**  

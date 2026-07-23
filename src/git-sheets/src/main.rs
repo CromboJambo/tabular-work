@@ -1,6 +1,13 @@
-// Git-Sheets CLI (Stub)
-// Snapshots of table state, diff computation, integrity verification via SHA-256.
+// git-sheets: Version control for spreadsheets - CLI entry point
+use clap::Parser;
+
+mod cli;
 
 fn main() {
-    println!("Git-Sheets v0.1.2");
+    let cli = cli::Cli::parse();
+    
+    if let Err(e) = cli.execute() {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
 }
