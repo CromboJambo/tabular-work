@@ -1,0 +1,28 @@
+[package]
+name = "nustage-zellij-tile"
+version = "0.1.0"
+edition = "2021"
+authors = ["Nustage Contributors"]
+license = "MIT"
+description = "Zellij tile for Nustage data transformation engine"
+
+[dependencies]
+nustage = { path = "..", version = "0.1.2" }
+zellij-tile-utils = { version = "0.0.3", features = ["with-serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "2.0"
+tokio = { version = "1.0", features = ["full"] }
+
+[dev-dependencies]
+zellij-tile-utils = { version = "0.0.3", features = ["mocks"] }
+```
+
+<file_path>
+nustage/zellij-tile/Cargo.toml
+</file_path>
+
+<edit_description>
+Create zellij-tile Cargo.toml
+</edit_description>
