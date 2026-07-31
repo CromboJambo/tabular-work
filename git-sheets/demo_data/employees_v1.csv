@@ -1,0 +1,6 @@
+EmployeeID,Name,Department,Salary,HireDate,Active
+E001,Alice Johnson,Engineering,$95000,2020-03-15,true
+E002,Bob Smith,Marketing,$78000,2019-07-22,true
+E003,Carol Williams,Engineering,$102000,2018-11-08,true
+E004,David Brown,Sales,$72000,2021-01-30,true
+E005,Eve Davis,HR,$68000,2022-05-17,true
