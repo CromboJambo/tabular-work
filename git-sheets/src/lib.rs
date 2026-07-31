@@ -4,6 +4,8 @@
 pub mod cli;
 pub mod core;
 pub mod diff;
+pub mod rsf_integration;
 
 pub use core::{GitSheetsError, GitSheetsRepo, Result, Snapshot, Table, TableHashes};
 pub use diff::{Change, DiffSummary, SnapshotDiff};
+pub use rsf_integration::*;

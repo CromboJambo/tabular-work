@@ -22,6 +22,7 @@ clap = { version = "4.5", features = ["derive"] }
 git2 = "0.20"
 walkdir = "2"
 agent-client-protocol = "0.10.2"
+rsf = { path = "../rsf-core" }
 
 [dev-dependencies]
 tempfile = "3.8"
@@ -29,6 +30,10 @@ tempfile = "3.8"
 [[bin]]
 name = "git-sheets"
 path = "src/main.rs"
+
+[[bin]]
+name = "demo_semantic_diff"
+path = "demo_semantic_diff.rs"
 
 [lib]
 name = "gitsheets"
