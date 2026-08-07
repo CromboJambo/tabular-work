@@ -4,8 +4,9 @@ members = [
     "rsf-cli",
     "nustage",
     "zed-sheet-lsp",
-    "git-sheets",
+    "git-sheets", "warranty-pipeline",
 ]
+exclude = ["spreadsheet-format", "spreadsheet-turso"]
 resolver = "2"
 
 [workspace.package]

@@ -2,3 +2,4 @@ target/
 Cargo.lock
 DATA/
 git-sheets/docs/examples/JOB_ORDERS_TO_CLOSE/JOBS_TO_CLOSE_WB.csv
+OUTPUT/
