@@ -4,8 +4,15 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-serde = "1.0"
-toml = "0.8"
+serde = { workspace = true }
+toml = { workspace = true }
+serde_json = "1.0"
+rsf = { path = "../rsf-core" }
 
-# Pipeline engine: canonical transformation model, sidecar management (.nustage.json), execution
-# No dependencies on other two (zed-sheet-lsp, git-sheets) — compose at workflow level
+# Pipeline engine: the transformation chain is the versioned object.
+# - pipeline: Step/Pipeline model, TOML sidecar (the "commit")
+# - topology: invariants under deformation (the rebase hint)
+# - executor: applies steps to rsf::TypedTable (the "checkout")
+# - ledger: TransactionRecord + PipelineLog (the route through the data landscape)
+# - rebase: replay against drifted input, report where the route breaks
+# No dependencies on zed-sheet-lsp or git-sheets — compose at workflow level.
