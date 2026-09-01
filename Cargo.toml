@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "rsf-core",
-    "rsf-cli",
     "nustage",
     "zed-sheet-lsp",
     "git-sheets", "warranty-pipeline",
@@ -18,7 +17,7 @@ edition = "2024"
 # - nustage (pipeline engine, depends on rsf-core optionally)
 # - zed-sheet-lsp (Zed LSP integration, depends on nustage + rsf-core)
 # - git-sheets (version control for spreadsheets, depends on rsf-core)
-# - rsf-cli (representation/analysis CLI, depends on rsf-core)
+# - rsf-cli: removed (abandoned standalone CLI/TUI; being reworked inside rsf-core)
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }

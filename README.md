@@ -63,7 +63,7 @@ git-sheets ─────────── (no dependencies on other two)
 - **src/nustage**: Pipeline engine (TOML config from zellij-tile, JSON fixtures removed as stale refs)
 - **src/zed-sheet-lsp**: Zed LSP integration (will need to be created/filled with actual code)
 - **src/git-sheets**: History manager (copied from original repo: cli, core, diff, hash libs)
-- **src/rsf-cli**: Representation/analysis companion (docs + scripts copied from original repo)
+- **rsf-core**: Semantic model for tabular data (pure library; the old rsf-cli TUI/CLI was abandoned and is being reworked here)
 
 ## Migration Status
 
@@ -79,4 +79,4 @@ git-sheets ─────────── (no dependencies on other two)
 3. Document workflows under tabular-work/docs/workflows.md
 
 ---
-*Consolidated from git-sheets, nustage artifacts, rsf-cli — July 2026*
+*Consolidated from git-sheets, nustage artifacts, rsf-core (rsf-cli abandoned) — July 2026*
