@@ -1,0 +1,3 @@
+[submodule "rsf-core"]
+	path = rsf-core
+	url = git@github.com:CromboJambo/rsf-core.git
