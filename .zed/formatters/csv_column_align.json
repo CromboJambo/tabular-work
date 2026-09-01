@@ -1,0 +1,14 @@
+{
+  "language": "CSV",
+  "formatter": {
+    "external": {
+      "command": "python3",
+      "arguments": [
+        "/home/crombo/projects/tabular-work/tools/csv_column_formatter.py",
+        "<file>",
+        "<file>"
+      ],
+      "description": "Align CSV columns to match first row width"
+    }
+  }
+}

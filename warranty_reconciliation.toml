@@ -1,0 +1,41 @@
+# Warranty Reconciliation Pipeline Configuration
+# Transforms warranty data for cost-to-revenue analysis
+
+name = "Warranty Cost Analysis"
+description = "Filter closed warranties and enrich with serial number data"
+
+[[steps]]
+type = "LoadExcel"
+source = "DATA/WarrantyWorkbook.xlsx"
+sheet = "MCT SharePoint link"
+output = "OUTPUT/mct_raw.csv"
+
+[[steps]]
+type = "Filter"
+input = "OUTPUT/mct_raw.csv"
+output = "OUTPUT/mct_closed.csv"
+condition = "STATUS == 'Closed'"
+
+[[steps]]
+type = "Join"
+left = "OUTPUT/mct_closed.csv"
+right = "DATA/WarrantyWorkbook.xlsx|Serial Number database"
+on = ["ID"]
+output = "OUTPUT/mct_enriched.csv"
+join_type = "inner"
+
+[[steps]]
+type = "Select"
+input = "OUTPUT/mct_enriched.csv"
+columns = ["ID", "Created", "STATUS", "Customer Name", "Order Number", "Machine Model (Lookup)", "Description"]
+output = "OUTPUT/warranty_summary.csv"
+
+[[steps]]
+type = "GroupBy"
+input = "OUTPUT/warranty_summary.csv"
+group_cols = ["Customer Name"]
+aggregations = [
+  { column = "ID", func = "count" },
+  { column = "Created", func = "avg" }
+]
+output = "OUTPUT/customer_warranty_totals.csv"

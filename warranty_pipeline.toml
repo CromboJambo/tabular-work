@@ -1,0 +1,55 @@
+# Warranty Pipeline Configuration
+# This demonstrates Power Query-like transformations in Rust
+
+name = "Warranty Workbook Transformation"
+description = "Recreates Excel Power Query workflows using Rust pipeline"
+
+# Step 1: Load raw data from MCT SharePoint
+[[steps]]
+type = "LoadExcel"
+source = "DATA/WarrantyWorkbook.xlsx"
+sheet = "MCT SharePoint link"
+output = "OUTPUT/mct_raw.csv"
+
+# Step 2: Filter closed items
+[[steps]]
+type = "Filter"
+input = "OUTPUT/mct_raw.csv"
+output = "OUTPUT/mct_closed.csv"
+condition = "STATUS == 'Closed'"
+
+# Step 3: Join with Serial Number database
+[[steps]]
+type = "Join"
+left = "OUTPUT/mct_closed.csv"
+right = "DATA/WarrantyWorkbook.xlsx|Serial Number database"
+on = ["ID"]
+output = "OUTPUT/mct_enriched.csv"
+join_type = "inner"
+
+# Step 4: Group by Customer and sum amounts
+[[steps]]
+type = "GroupBy"
+input = "OUTPUT/mct_enriched.csv"
+group_cols = ["Customer Name"]
+aggregations = [
+    { column = "Total Cost", func = "sum", alias = "total_warranty_cost" },
+    { column = "Total Cost", func = "count", alias = "warranty_count" }
+]
+output = "OUTPUT/customer_summary.csv"
+
+# Step 5: Pivot by SRO Type (distribution check)
+[[steps]]
+type = "Pivot"
+input = "OUTPUT/mct_enriched.csv"
+index_cols = ["SRO Type"]
+value_col = "Total Cost"
+agg_func = "sum"
+output = "OUTPUT/sro_distribution.csv"
+
+# Step 6: Select key columns for final report
+[[steps]]
+type = "Select"
+input = "OUTPUT/customer_summary.csv"
+columns = ["Customer Name", "total_warranty_cost", "warranty_count"]
+output = "OUTPUT/customer_report.csv"

@@ -1,0 +1,32 @@
+[package]
+name = "warranty-pipeline"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Warranty workbook transformation pipeline - Power Query alternative in Rust"
+authors = ["Dustin Grover <dustinjgrover@gmail.com>"]
+
+[dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+toml = "0.8"
+anyhow = "1.0"
+regex = "1.10"
+
+# Excel/CSV reading (Rust-native)
+calamine = "0.26"
+csv = "1.3"
+
+# CLI
+clap = { version = "4.5", features = ["derive"] }
+
+# Table operations (from existing project)
+rsf = { path = "../rsf-core" }
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+[features]
+default = []
+full-pipeline = []
