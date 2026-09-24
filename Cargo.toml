@@ -3,7 +3,8 @@ members = [
     "rsf-core",
     "nustage",
     "zed-sheet-lsp",
-    "git-sheets", "warranty-pipeline",
+    "git-sheets", "warranty-pipeline", "sro-pivot",
+    "tabular-inspect",
 ]
 exclude = ["spreadsheet-format", "spreadsheet-turso"]
 resolver = "2"
@@ -25,3 +26,4 @@ clap = { version = "4.5", features = ["derive"] }
 toml = "0.8"
 sha256 = "0.1"
 chardet = "0.3"
+calamine = "0.26"

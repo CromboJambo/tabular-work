@@ -34,6 +34,37 @@ impl Cli {
             Commands::Verify { file } => verify_snapshot(&Path::new(file)),
             Commands::Status => show_status(),
             Commands::Log { limit } => show_log(*limit),
+            Commands::Publish { pipeline, title, description, repo_name, dry_run, output_dir } => {
+                let opts = crate::publish::PublishOptions {
+                    title: title.clone().unwrap_or_default(),
+                    description: description.clone(),
+                    repo_name: repo_name.clone(),
+                    dry_run: *dry_run,
+                    output_dir: output_dir.clone(),
+                };
+
+                // Build package locally
+                let pkg_dir = crate::publish::build_publish_package(Path::new(pipeline), &opts)?;
+
+                // Push to GitHub if not dry-run
+                if !*dry_run {
+                    let title_str = opts.title.as_str();
+                    let desc_opt = opts.description.as_deref();
+                    let repo_name_str = opts.repo_name.clone().unwrap_or_else(|| {
+                        crate::publish::title_to_slug(&opts.title)
+                    });
+
+                    println!("Pushing to GitHub...");
+                    crate::github::push_to_github(
+                        &pkg_dir,
+                        title_str,
+                        desc_opt,
+                        &repo_name_str,
+                    )?;
+                }
+
+                Ok(())
+            }
         }
     }
 }
@@ -96,6 +127,33 @@ enum Commands {
         /// Limit number of snapshots shown
         #[arg(short, long)]
         limit: Option<usize>,
+    },
+
+    /// Publish a nustage pipeline as a portable workflow repository
+    Publish {
+        /// Path to the .nustage.toml pipeline file
+        #[arg(value_name = "PIPELINE")]
+        pipeline: String,
+
+        /// Human-readable title for the workflow
+        #[arg(long)]
+        title: Option<String>,
+
+        /// Longer description of what the workflow does
+        #[arg(long)]
+        description: Option<String>,
+
+        /// GitHub repo name (default: derived from title)
+        #[arg(long)]
+        repo_name: Option<String>,
+
+        /// Show what would be published without creating files
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Output directory for the publish package
+        #[arg(long)]
+        output_dir: Option<String>,
     },
 }
 

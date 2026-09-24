@@ -1,0 +1,15 @@
+[package]
+name = "tabular-inspect"
+version = "0.1.0"
+edition = "2024"
+description = "Detect programmatic generation in Excel files via structural analysis"
+
+[[bin]]
+name = "tabular-inspect"
+path = "src/main.rs"
+
+[dependencies]
+zip = "2.0"
+quick-xml = "0.37"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
