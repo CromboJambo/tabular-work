@@ -325,6 +325,38 @@ fn detect_patterns(archive: &mut zip::ZipArchive<Cursor<Vec<u8>>>) -> Vec<(Strin
     // Heuristic 5: Formula patterns (repeated formulas suggest programmatic)
     // TODO: Analyze worksheet XML for formula repetition
 
+    // Heuristic 6: Statistical analysis of cell value distributions
+    // Scan multiple sheets for numeric data patterns
+    let mut total_numeric = 0;
+    let mut low_entropy_sheets = 0;
+    
+    if let Ok(wb_content) = read_xml_entry(archive, "xl/workbook.xml") {
+        let sheet_names = extract_sheet_names(&wb_content);
+        let sheets_to_check = std::cmp::min(sheet_names.len(), 5);
+        
+        for i in 0..sheets_to_check {
+            let sheet_file = format!("xl/worksheets/sheet{}.xml", i + 1);
+            if let Ok(sheet_content) = read_xml_entry(archive, &sheet_file) {
+                let numeric_values = extract_numeric_values(&sheet_content);
+                total_numeric += numeric_values.len();
+                
+                if numeric_values.len() > 10 {
+                    let stats_score = analyze_value_distribution(&numeric_values);
+                    if stats_score > 60.0 {
+                        low_entropy_sheets += 1;
+                    }
+                }
+            }
+        }
+    }
+    
+    if total_numeric > 10 {
+        // High proportion of low-entropy sheets suggests programmatic generation
+        let entropy_ratio = (low_entropy_sheets as f64) / ((total_numeric as f64) / 100.0);
+        let stats_score = (entropy_ratio * 80.0).min(95.0);
+        results.push(("Value distribution entropy".to_string(), stats_score));
+    }
+
     results
 }
 
@@ -438,4 +470,69 @@ struct FileInfo {
     dn_count: i32,
     has_custom_props: bool,
     has_macros: bool,
+}
+
+/// Extract numeric values from worksheet XML cells
+fn extract_numeric_values(sheet_content: &str) -> Vec<f64> {
+    let mut values = Vec::new();
+    // Find all <c ...><v>NUMBER</v></c> patterns
+    for line in sheet_content.lines() {
+        if line.contains("<v>") {
+            if let Some(start) = line.find("<v>") {
+                let rest = &line[start + 3..];
+                if let Some(end) = rest.find("</v>") {
+                    let num_str = &rest[..end];
+                    if let Ok(num) = num_str.parse::<f64>() {
+                        values.push(num);
+                    }
+                }
+            }
+        }
+    }
+    values
+}
+
+/// Analyze value distribution for programmatic patterns
+/// Low entropy (many repeated values, uniform distribution) suggests programmatic generation
+fn analyze_value_distribution(values: &[f64]) -> f64 {
+    if values.len() < 10 {
+        return 0.0;
+    }
+
+    // Calculate unique value ratio (low = many repeats = programmatic)
+    let mut sorted = values.to_vec();
+    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    
+    let mut unique_count = 1;
+    for i in 1..sorted.len() {
+        if (sorted[i] - sorted[i-1]).abs() > 0.0001 {
+            unique_count += 1;
+        }
+    }
+
+    let unique_ratio = unique_count as f64 / values.len() as f64;
+
+    // Calculate range vs count ratio (wide range, few values = programmatic)
+    if sorted.len() > 1 {
+        let min_val = *sorted.first().unwrap();
+        let max_val = *sorted.last().unwrap();
+        let range = max_val - min_val;
+        
+        if range > 0.0 && unique_ratio < 0.5 {
+            // Many repeated values across wide range = very programmatic
+            return 85.0;
+        } else if unique_ratio < 0.3 {
+            // Very few unique values relative to total
+            return 70.0;
+        } else if unique_ratio < 0.6 {
+            return 40.0;
+        }
+    }
+
+    // High uniqueness suggests hand-edited
+    if unique_ratio > 0.8 {
+        return 15.0;
+    }
+
+    return 30.0;
 }
