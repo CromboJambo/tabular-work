@@ -73,22 +73,54 @@ tabular-inspect file.xlsx
 
 ### Phase 2: Pattern Detection
 
-Analyze file characteristics to classify generation method:
+Use the detailed AST from pesti-structural-tokenizer (syn-based) for structural analysis:
 
 - **Format consistency score**: How uniform are cell styles?
 - **Shared string density**: Ratio of shared strings to total cells
 - **Formula patterns**: Are formulas manually entered or generated?
 - **Metadata analysis**: Check creation/modification timestamps, application info
+- **Control flow analysis**: Detect loops with incrementing indices (sequential row generation)
+- **Value distribution entropy**: Low entropy in numeric columns suggests programmatic generation
 
-### Phase 3: Change Detection (git-sheets integration)
+The tokenizer now provides statement-level detail including control flow (loops, conditionals), method calls, and function bodies — enabling much more precise pattern detection than top-level declarations alone.
 
-Compare two versions of a spreadsheet and report:
+### Phase 3: Change Detection (COMPLETE)
 
-- Structural changes (new sheets, columns added/removed)
-- Content changes (cell values modified)
-- Formatting changes
-- Formula changes
-- Named range changes
+Compare two versions of a spreadsheet and report structural/content changes.
+
+```bash
+tabular-inspect diff before.xlsx after.xlsx
+```
+
+Output includes:
+- Structural changes (sheet count, column additions/removals)
+- Content changes (shared string count deltas)
+- Named range additions/removals
+- Macro presence changes
+- Custom property changes
+- Pattern score deltas between versions
+- Classification boundary crossings
+
+### Phase 4: git-sheets Integration (COMPLETE)
+
+Run pattern detection as part of version control workflow. When comparing spreadsheet snapshots via git-sheets, optionally run tabular-inspect heuristics to detect changes in programmatic vs hand-edited character across revisions.
+
+```bash
+# Compare two snapshot files with pattern analysis
+git-sheets diff before.xlsx after.xlsx --inspect
+```
+
+This invokes tabular-inspect's diff subcommand within the git-sheets workflow, providing:
+- Version-control-aware structural comparison
+- Pattern detection deltas between revisions
+- Classification boundary crossing alerts across versions
+
+## Completed Phases
+
+1. Basic file structure inspection ✓
+2. Pattern detection heuristics ✓
+3. Change detection between versions ✓
+4. git-sheets integration ✓
 
 ## File Structure for This Project
 

@@ -38,7 +38,7 @@ path = "src/main.rs"
 
 [[bin]]
 name = "demo_semantic_diff"
-path = "demo_semantic_diff.rs"
+path = "examples/demo_semantic_diff.rs"
 
 [lib]
 name = "gitsheets"

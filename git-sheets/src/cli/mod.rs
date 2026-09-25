@@ -27,9 +27,9 @@ impl Cli {
                 primary_key,
                 auto_commit,
             } => create_snapshot(Path::new(file), message.clone(), primary_key.clone(), *auto_commit),
-            Commands::Diff { from, to, format } => {
+            Commands::Diff { from, to, format, inspect } => {
                 let format_str = format.as_ref().map(|s| s.as_str()).unwrap_or("text");
-                show_diff(&Path::new(from), &Path::new(to), format_str)
+                show_diff(&Path::new(from), &Path::new(to), format_str, *inspect)
             }
             Commands::Verify { file } => verify_snapshot(&Path::new(file)),
             Commands::Status => show_status(),
@@ -110,6 +110,10 @@ enum Commands {
         /// Output format (json or git)
         #[arg(short, long)]
         format: Option<String>,
+
+        /// Run tabular-inspect heuristics on both snapshots
+        #[arg(long)]
+        inspect: bool,
     },
 
     /// Verify integrity of a snapshot
@@ -255,12 +259,36 @@ fn create_snapshot(
     Ok(())
 }
 
-fn show_diff(from: &Path, to: &Path, format: &str) -> Result<()> {
+fn show_diff(from: &Path, to: &Path, format: &str, inspect: bool) -> Result<()> {
     println!("Computing diff...");
 
     let snapshot1 = Snapshot::load(from)?;
     let snapshot2 = Snapshot::load(to)?;
     let diff = SnapshotDiff::compute(&snapshot1, &snapshot2)?;
+
+    if inspect {
+        // Run tabular-inspect heuristics on both snapshots
+        println!("\n=== Pattern Analysis ===");
+        match std::process::Command::new("cargo")
+            .args(["run", "-p", "tabular-inspect", "--", "diff"])
+            .arg(from)
+            .arg(to)
+            .output()
+        {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                if !stdout.is_empty() {
+                    print!("{}", stdout);
+                } else if !stderr.is_empty() {
+                    eprint!("{}", stderr);
+                }
+            }
+            Err(e) => {
+                eprintln!("Warning: tabular-inspect failed: {}", e);
+            }
+        }
+    }
 
     match format {
         "json" => {
