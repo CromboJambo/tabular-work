@@ -1,0 +1,8 @@
+[package]
+name = "formula-engine"
+version = "0.1.0"
+edition = "2024"
+description = "Spreadsheet formula evaluation engine with cell references and dependency graph"
+
+[dependencies]
+formula-tokenizer = { path = "../formula-tokenizer" }
