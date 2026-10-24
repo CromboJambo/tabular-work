@@ -1,0 +1,11 @@
+name = "high-value orders"
+input = "../fixtures/sales.csv"
+output = "results/high_value.csv"
+
+[[steps]]
+type = "filter-rows"
+condition = "total > 150"
+
+[[steps]]
+type = "select-columns"
+columns = ["id", "name", "total"]
