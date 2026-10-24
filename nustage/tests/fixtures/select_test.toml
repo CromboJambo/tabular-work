@@ -1,0 +1,7 @@
+name = "select test"
+input = "fixtures/sales.csv"
+output = "results/selected.csv"
+
+[[steps]]
+type = "select-columns"
+columns = ["id", "name", "total"]

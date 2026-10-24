@@ -1,5 +1,5 @@
 name = "high-value orders"
-input = "../fixtures/sales.csv"
+input = "fixtures/sales.csv"
 output = "results/high_value.csv"
 
 [[steps]]

@@ -10,6 +10,27 @@
 
 use std::path::Path;
 
+fn table_to_typed(table: &rsf::Table) -> rsf::TypedTable {
+    let headers: Vec<String> = table.headers().iter().map(|h| h.value.clone()).collect();
+    let rows: Vec<Vec<String>> = table.rows().iter().map(|row| {
+        row.iter().map(|f| f.value.clone()).collect()
+    }).collect();
+
+    // Use Unknown type hint for all columns (simplest conversion)
+    let profiles: Vec<rsf::ColumnProfile> = headers.iter().enumerate().map(|(_, _)| {
+        rsf::ColumnProfile {
+            total_rows: table.row_count(),
+            null_count: 0,
+            cardinality: 0,
+            is_constant: false,
+            uniqueness_ratio: 1.0,
+            type_hint: rsf::TypeHint::Unknown,
+        }
+    }).collect();
+
+    rsf::TypedTable::from_untyped(&headers, &rows, &profiles)
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
@@ -84,9 +105,70 @@ fn cmd_run(path: &str) {
         }
     };
 
+    // Determine input file: from pipeline config or CLI arg
+    let input_file = match &pipeline.input {
+        Some(f) if !f.is_empty() => f.clone(),
+        _ => {
+            eprintln!("No input specified in pipeline and no --input argument");
+            return;
+        }
+    };
+
+    // Load the input CSV and convert to typed table
+    let raw_table = match rsf::load_csv(&std::path::PathBuf::from(&input_file)) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("Failed to load input {input_file}: {e}");
+            return;
+        }
+    };
+    let table = table_to_typed(&raw_table);
+
     println!("Running pipeline: {}", pipeline.name);
+    println!("Input: {} ({} rows)", input_file, table.row_count());
     println!("Steps: {}", pipeline.steps.len());
-    // TODO: Execute and show results
+    println!();
+
+    // Execute the pipeline
+    match nustage::executor::run_pipeline(&table, &pipeline.steps) {
+        Ok((result, ledger)) => {
+            println!("Pipeline completed successfully");
+            println!("Final result: {} rows", result.row_count());
+            println!();
+
+            // Show step-by-step results
+            for (i, step_result) in ledger.iter().enumerate() {
+                println!("  Step {}: {} -> {} rows", i + 1, step_result.rows_in, step_result.rows_out);
+            }
+            println!();
+
+            // Write output if specified
+            if let Some(output_file) = &pipeline.output {
+                if !output_file.is_empty() {
+                    let csv_content = result.to_csv();
+                    match std::fs::write(Path::new(output_file), csv_content) {
+                        Ok(_) => println!("Output written to: {output_file}"),
+                        Err(e) => eprintln!("Failed to write output {output_file}: {e}"),
+                    }
+                }
+            }
+
+            // Show preview of results
+            if result.row_count() > 0 {
+                println!();
+                println!("Result preview (first {} rows):", std::cmp::min(3, result.row_count()));
+                let headers: Vec<String> = result.columns.iter().map(|c| c.name.clone()).collect();
+                println!("| {} |", headers.join(" | "));
+                for row in result.rows.iter().take(3) {
+                    let cells: Vec<String> = row.iter().map(|v| v.as_str()).collect();
+                    println!("| {} |", cells.join(" | "));
+                }
+            }
+        }
+        Err((step_idx, error)) => {
+            eprintln!("Pipeline failed at step {}: {}", step_idx + 1, error);
+        }
+    }
 }
 
 fn cmd_preview(path: &str) {

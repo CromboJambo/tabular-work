@@ -54,6 +54,10 @@ pub enum Step {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Pipeline {
     pub name: String,
+    #[serde(default)]
+    pub input: Option<String>,
+    #[serde(default)]
+    pub output: Option<String>,
     pub steps: Vec<Step>,
 }
 
@@ -61,6 +65,8 @@ impl Pipeline {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
+            input: None,
+            output: None,
             steps: Vec::new(),
         }
     }
