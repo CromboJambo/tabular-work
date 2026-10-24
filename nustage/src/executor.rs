@@ -4,7 +4,8 @@
 //! (the terrain), replay the steps to produce the working table. Each step
 //! runs on a `rsf::TypedTable`, so operations are type-aware.
 
-use rsf::{Column, Expr, FieldValue, TypedTable};
+use rsf::expr::Expr;
+use rsf::{Column, FieldValue, TypedTable};
 
 use crate::pipeline::Step;
 use crate::topology::TopologySignature;
@@ -161,6 +162,13 @@ fn extract_identifiers(src: &str) -> Vec<String> {
 
 fn add_column(table: &TypedTable, name: &str, expr: &str) -> Result<TypedTable, StepError> {
     let names = headers(table);
+    
+    // Detect formula syntax (starts with "=") vs expression syntax
+    let trimmed = expr.trim_start();
+    if trimmed.starts_with('=') {
+        return add_formula_column(table, name, &trimmed[1..]);
+    }
+    
     validate_refs(expr, &names)?;
     let e = Expr::parse(expr, &names).map_err(|e| StepError::ExprParse(e.to_string()))?;
     let mut out = table.clone();
@@ -183,13 +191,114 @@ fn add_column(table: &TypedTable, name: &str, expr: &str) -> Result<TypedTable, 
     Ok(out)
 }
 
+/// Evaluate a formula expression using the formula engine with column-name resolution.
+/// Supports Excel-style functions like SUM, IF, AVERAGE, etc.
+fn add_formula_column(table: &TypedTable, name: &str, expr: &str) -> Result<TypedTable, StepError> {
+    let names = headers(table);
+    
+    // Parse the formula once (structure is the same for all rows)
+    let parser = formula_engine::FormulaParser::new();
+    let ast = parser.parse(expr).map_err(|e| StepError::ExprParse(e))?;
+    
+    // Evaluate per row, resolving cell references to actual column values
+    let mut out = table.clone();
+    let mut inferred: Option<rsf::TypeHint> = None;
+    let mut new_rows: Vec<Vec<FieldValue>> = Vec::with_capacity(table.rows.len());
+    
+    for (row_idx, row) in table.rows.iter().enumerate() {
+        // Build cell map for this specific row using Excel-style addressing
+        // For pipeline formulas, row number is always 1 (current row)
+        let mut row_cells = std::collections::HashMap::new();
+        for (col_idx, _col_name) in names.iter().enumerate() {
+            // Convert column index to Excel letter (A=0, B=1, ...)
+            let cell_letter = ((col_idx as u8) + b'A') as char;
+            let cell_ref = format!("{}{}", cell_letter, 1);
+            
+            match &row[col_idx] {
+                FieldValue::Integer(n) => {
+                    row_cells.insert(cell_ref, formula_engine::CellValue::Number(*n as f64));
+                }
+                FieldValue::Float(f) => {
+                    row_cells.insert(cell_ref, formula_engine::CellValue::Number(*f));
+                }
+                FieldValue::Text(s) => {
+                    row_cells.insert(cell_ref, formula_engine::CellValue::Text(s.clone()));
+                }
+                FieldValue::Boolean(b) => {
+                    row_cells.insert(cell_ref, formula_engine::CellValue::Boolean(*b));
+                }
+                FieldValue::Null => {
+                    row_cells.insert(cell_ref, formula_engine::CellValue::Empty);
+                }
+            }
+        }
+        
+        // Evaluate the formula for this row against its cell map
+        let result = formula_engine::evaluate(expr, &row_cells);
+        match result {
+            Ok(formula_engine::CellValue::Number(n)) => {
+                if n.fract() == 0.0 && n.abs() < i64::MAX as f64 {
+                    let v = FieldValue::Integer(n as i64);
+                    if inferred.is_none() { inferred = Some(rsf::TypeHint::Integer); }
+                    let mut nr = row.clone();
+                    nr.push(v);
+                    new_rows.push(nr);
+                } else {
+                    let v = FieldValue::Float(n);
+                    if inferred.is_none() { inferred = Some(rsf::TypeHint::Float); }
+                    let mut nr = row.clone();
+                    nr.push(v);
+                    new_rows.push(nr);
+                }
+            }
+            Ok(formula_engine::CellValue::Text(s)) => {
+                let v = FieldValue::Text(s);
+                if inferred.is_none() { inferred = Some(rsf::TypeHint::Unknown); }
+                let mut nr = row.clone();
+                nr.push(v);
+                new_rows.push(nr);
+            }
+            Ok(formula_engine::CellValue::Boolean(b)) => {
+                let v = FieldValue::Boolean(b);
+                if inferred.is_none() { inferred = Some(rsf::TypeHint::Boolean); }
+                let mut nr = row.clone();
+                nr.push(v);
+                new_rows.push(nr);
+            }
+            Ok(formula_engine::CellValue::Empty) => {
+                let v = FieldValue::Null;
+                if inferred.is_none() { inferred = Some(rsf::TypeHint::Unknown); }
+                let mut nr = row.clone();
+                nr.push(v);
+                new_rows.push(nr);
+            }
+            Ok(formula_engine::CellValue::Formula(f)) => {
+                // Formula that evaluates to another formula — treat as text
+                let v = FieldValue::Text(f);
+                if inferred.is_none() { inferred = Some(rsf::TypeHint::Unknown); }
+                let mut nr = row.clone();
+                nr.push(v);
+                new_rows.push(nr);
+            }
+            Err(e) => {
+                return Err(StepError::ExprParse(format!("formula error: {}", e)));
+            }
+        }
+    }
+    
+    let type_hint = inferred.unwrap_or_else(|| rsf::TypeHint::Unknown);
+    out.columns.push(Column::new(name, type_hint));
+    out.rows = new_rows;
+    Ok(out)
+}
+
 /// Evaluate an expression to a single FieldValue (not a boolean).
 ///
 /// Arithmetic operators (Add/Sub/Mul/Div) produce a numeric value via
 /// `FieldValue::apply_arith`; comparison operators (Eq/Neq/Gt/Lt/Ge/Le)
 /// in value context yield a Boolean.
 fn evaluate_value(expr: &Expr, row: &[FieldValue], columns: &[Column]) -> FieldValue {
-    use rsf::Expr::*;
+    use rsf::expr::{BinOp, Expr::*};
     match expr {
         Column(name) => {
             if let Some(idx) = columns.iter().position(|c| &c.name == name) {
@@ -213,7 +322,7 @@ fn evaluate_value(expr: &Expr, row: &[FieldValue], columns: &[Column]) -> FieldV
             let lv = evaluate_value(l, row, columns);
             let rv = evaluate_value(r, row, columns);
             match op {
-                rsf::BinOp::Add | rsf::BinOp::Sub | rsf::BinOp::Mul | rsf::BinOp::Div => {
+                rsf::expr::BinOp::Add | rsf::expr::BinOp::Sub | rsf::expr::BinOp::Mul | rsf::expr::BinOp::Div => {
                     FieldValue::apply_arith(&lv, &rv, op)
                 }
                 _ => FieldValue::Boolean(compare_values(&lv, &rv, op)),
@@ -241,8 +350,8 @@ fn evaluate_value(expr: &Expr, row: &[FieldValue], columns: &[Column]) -> FieldV
 }
 
 /// Compare two field values with a binary operator (mirrors rsf's semantics).
-fn compare_values(l: &FieldValue, r: &FieldValue, op: &rsf::BinOp) -> bool {
-    use rsf::BinOp::*;
+fn compare_values(l: &FieldValue, r: &FieldValue, op: &rsf::expr::BinOp) -> bool {
+    use rsf::expr::BinOp::*;
     match (l, r) {
         (FieldValue::Null, FieldValue::Null) => matches!(op, Eq),
         (FieldValue::Null, _) | (_, FieldValue::Null) => matches!(op, Neq),
@@ -575,5 +684,37 @@ mod tests {
         let (out, _) = run_pipeline(&table, &steps).expect("pipeline should run");
         // Only rows with total 200 and 250 survive (150 is not > 150).
         assert_eq!(out.row_count(), 2);
+    }
+
+    /// Formula syntax (=B1*C1) uses the formula engine with Excel-style cell references.
+    #[test]
+    fn test_formula_column_syntax() {
+        let table = order_table();
+        let steps = vec![Step::AddColumn {
+            name: "total".to_string(),
+            expr: "=B1*C1".to_string(), // qty * price using formula syntax with cell refs
+        }];
+        let (out, _) = run_pipeline(&table, &steps).expect("pipeline should run");
+        assert_eq!(out.column_count(), 4);
+        let totals = last_col(&out);
+        assert_eq!(totals[0], &FieldValue::Integer(200));
+        assert_eq!(totals[1], &FieldValue::Integer(150));
+        assert_eq!(totals[2], &FieldValue::Integer(250));
+    }
+
+    /// Formula with SUM function using Excel-style cell references.
+    #[test]
+    fn test_formula_sum_function() {
+        let table = order_table();
+        let steps = vec![Step::AddColumn {
+            name: "sum_total".to_string(),
+            expr: "=SUM(B1,C1)".to_string(), // qty + price using SUM formula with cell refs
+        }];
+        let (out, _) = run_pipeline(&table, &steps).expect("pipeline should run");
+        assert_eq!(out.column_count(), 4);
+        let sums = last_col(&out);
+        assert_eq!(sums[0], &FieldValue::Integer(102)); // 2 + 100
+        assert_eq!(sums[1], &FieldValue::Integer(53)); // 3 + 50
+        assert_eq!(sums[2], &FieldValue::Integer(251)); // 1 + 250
     }
 }
