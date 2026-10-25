@@ -1,10 +1,10 @@
 [workspace]
 members = [
     "rsf-core",
+    "rsf-cli",
     "nustage",
-    "zed-sheet-lsp",
     "git-sheets", "warranty-pipeline", "sro-pivot",
-    "tabular-inspect",
+    "tabular-inspect", "formula-tokenizer", "formula-engine",
 ]
 exclude = ["spreadsheet-format", "spreadsheet-turso"]
 resolver = "2"
